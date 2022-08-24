@@ -1,2 +1,3 @@
-# .github
-README repo for OmnisTools
+# Omnis Tools Inc
+
+Omnis Tools GitHub organization
