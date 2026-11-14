@@ -129,7 +129,7 @@ The AI track is deliberately separate from the Standard flow and must stay that 
 - IAM role is always `github-actions-deploy` in every account (provisioned by the `infra-iam` TFC workspace).
 - Use OIDC (`role-to-assume`) in GitHub Actions — never use static IAM access keys.
 - Each GitHub environment exposes exactly two variables: `AWS_ROLE_ARN` and `AWS_DEFAULT_REGION`.
-- TFC workspace naming pattern: `{prefix}-{repo-name}` where the prefix is the TFC project, lowercased: `dev` (for the `devtest` lane), `staging`, `prod`, `ai-dev`, `ai-stage`. The `devtest` lane's workspaces use the `dev-` prefix (e.g. `dev-backend-omnis`), never `devtest-`.
+- TFC workspace naming pattern: `{prefix}-{repo-name}`, with the prefix taken from this explicit lane mapping (do not derive it from the project name): `devtest` lane → `dev`, `staging` → `staging`, `prod` → `prod`, `ai-dev` → `ai-dev`, `ai-stage` → `ai-stage`. Example: `dev-backend-omnis` for the `devtest` lane, never `devtest-backend-omnis`; `ai-stage-backend-omnis`, never `ai-staging-backend-omnis`.
 - TFC workspaces are grouped by lane into TFC Projects: `Dev`, `Staging`, `Prod`, `AI-Dev`, `AI-Staging`.
 
 ## Tooling Responsibilities

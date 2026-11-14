@@ -11,9 +11,13 @@ There is no branch named `mainline` in any of them.
 
 The branch-base, rebase and PR-target rules below apply to **Standard-flow**
 work only. **AI-lane work** (`ai/dev`, `ai/stage`) follows the AI Track
-Isolation rules in `aws-environments.md` instead: cut and update `ai/dev` from
-`production`, never branch from or open PRs into `main`, `devtest`, `staging` or
-`production`, and never promote an AI branch into a Standard-flow branch.
+Isolation rules in `aws-environments.md` instead:
+
+- **Allowed source:** `production` only, to cut `ai/dev` or to merge forward into
+  it. Never use `main`, `devtest` or `staging` as a source.
+- **Forbidden targets:** never commit, push or open a PR into `main`, `devtest`,
+  `staging` or `production`, and never promote an AI branch into any
+  Standard-flow branch.
 
 When a Standard-flow workflow runs work in a git worktree:
 
