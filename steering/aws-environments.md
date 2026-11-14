@@ -20,6 +20,14 @@ All OmnisTools repositories share the same five AWS accounts and deployment lane
 | ai-dev   | `ai/dev`     | `ai-dev`           | `AI-Dev`     | `ai-dev-{repo}`            | `885102939857` | `arn:aws:iam::885102939857:role/github-actions-deploy` |
 | ai-stage | `ai/stage`   | `ai-stage`         | `AI-Staging` | `ai-stage-{repo}`          | `075502354537` | `arn:aws:iam::075502354537:role/github-actions-deploy` |
 
+> **Application account vs network account (OmnisTools).** The account IDs above
+> are the *application* accounts for each lane. Networks are owned by separate
+> accounts and shared by AWS RAM to the lane's OU: dev `885102939857`, staging
+> `697731339825` (`omnistools-staging`), prod `075502354537`. Application accounts
+> in the OU consume the share and need no VPC. See `aws-org-structure.md`.
+> The `ai-dev` / `ai-stage` rows are being re-pointed at dedicated accounts (OT-800)
+> and will change.
+
 ### Branch naming rule
 
 **The lane branch is named for its environment.** The dev environment is
