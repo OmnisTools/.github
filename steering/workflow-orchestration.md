@@ -9,7 +9,13 @@ The OmnisTools repos (frontend-omnis, backend-omnis, infra-omnis, and the
 others under this workspace) use `main` as their default/integration branch.
 There is no branch named `mainline` in any of them.
 
-When a workflow runs work in a git worktree:
+The branch-base, rebase and PR-target rules below apply to **Standard-flow**
+work only. **AI-lane work** (`ai/dev`, `ai/stage`) follows the AI Track
+Isolation rules in `aws-environments.md` instead: cut and update `ai/dev` from
+`production`, never branch from or open PRs into `main`, `devtest`, `staging` or
+`production`, and never promote an AI branch into a Standard-flow branch.
+
+When a Standard-flow workflow runs work in a git worktree:
 
 - Create the worktree from the repository's default branch, which is `main`:
   `git worktree add .worktrees/<name> -b <branch> main`
@@ -24,7 +30,7 @@ When a workflow runs work in a git worktree:
 ## Never auto-advance the trunk — open a PR
 
 `main` is the protected trunk in every OmnisTools repo. The final step of a
-worktree workflow must NOT fast-forward, merge, or otherwise advance `main`
+Standard-flow worktree workflow must NOT fast-forward, merge, or otherwise advance `main`
 directly.
 
 Instead, the final step:

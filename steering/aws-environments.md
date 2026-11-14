@@ -129,7 +129,7 @@ The AI track is deliberately separate from the Standard flow and must stay that 
 - IAM role is always `github-actions-deploy` in every account (provisioned by the `infra-iam` TFC workspace).
 - Use OIDC (`role-to-assume`) in GitHub Actions — never use static IAM access keys.
 - Each GitHub environment exposes exactly two variables: `AWS_ROLE_ARN` and `AWS_DEFAULT_REGION`.
-- TFC workspace naming pattern: `{lane}-{repo-name}` (e.g. `dev-backend-omnis`).
+- TFC workspace naming pattern: `{prefix}-{repo-name}` where the prefix is the TFC project, lowercased: `dev` (for the `devtest` lane), `staging`, `prod`, `ai-dev`, `ai-stage`. The `devtest` lane's workspaces use the `dev-` prefix (e.g. `dev-backend-omnis`), never `devtest-`.
 - TFC workspaces are grouped by lane into TFC Projects: `Dev`, `Staging`, `Prod`, `AI-Dev`, `AI-Staging`.
 
 ## Tooling Responsibilities
@@ -146,7 +146,7 @@ The AI track is deliberately separate from the Standard flow and must stay that 
 - Infrastructure changes go through TFC; application changes go through GitHub Actions — do not conflate the two.
 - Never suggest creating new IAM roles for deployment; `github-actions-deploy` already exists in every account.
 - When creating a new TFC workspace, place it in the correct TFC Project matching its lane.
-- When running any `aws` CLI command locally, ALWAYS use `--profile <profile>` matching the lane: dev → `omnistools-devtest`, staging → `omnistools-preprod`, prod → `omnistools-newprod`, ai-dev → `omnistools-dev`, ai-stage → `omnistools-prod`.
+- When running any `aws` CLI command locally, ALWAYS use `--profile <profile>`. For **application lanes** (backend-omnis and the infra repos), match the lane: devtest → `omnistools-devtest`, staging → `omnistools-preprod`, prod → `omnistools-newprod`, ai-dev → `omnistools-dev`, ai-stage → `omnistools-prod`. For **WordPress** (OmnisTools / OmnisRisk marketing sites), do not use this mapping: select the profile from the WordPress hosting table above (`omnistools-dev`, `omnistools-prod`, `omnisrisk-dev`, `omnisrisk-prod`).
 - NEVER run `aws` CLI commands without `--profile` — they will fail with NoCredentials.
 - AI-lane work MUST NOT commit, merge, or push to `main`, `devtest`, `staging`, or `production` — those branches are read-only to the AI track. Cut and update `ai/dev` from `production` instead, and let the AI promotion flow create and update `ai/stage` from `ai/dev`.
 - When an AI branch needs Standard-flow changes, merge `production` forward into `ai/dev`. This synchronization merge is permitted; promoting or cherry-picking from an AI branch into a Standard-flow branch is not.
