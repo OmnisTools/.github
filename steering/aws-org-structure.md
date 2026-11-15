@@ -72,6 +72,11 @@ where segment = product line (Risk vs Tools) × tier (Dev, Stage or Prod):
   network. Earlier versions of this file said preprod rides Production. That was
   wrong.
 - **Do not deploy the OU-scoped share to `network-omnistools-dev` until preprod has
-  migrated.** The live dev share still targets the whole org, which is why preprod
-  can use it. Scoping it to the Dev OU would cut off preprod's EKS, ALB, RDS,
-  Elasticsearch and Lambda ENIs, which sit in the dev subnets.
+  migrated.** The live dev share still targets the whole org, which is how preprod
+  uses it. Scoping it to the Dev OU would unshare the subnets from preprod. Per
+  [AWS](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing-share-subnet-working-with.html),
+  resources already running in an unshared subnet keep running, but the participant
+  can no longer create new resources there, and managed workflows that need
+  continuous access (load balancer scaling, EKS node replacement, Lambda ENI
+  creation) can fail. Preprod's EKS, ALB, RDS, Elasticsearch and Lambda would
+  keep running until something needs to scale or be replaced, and then break.
