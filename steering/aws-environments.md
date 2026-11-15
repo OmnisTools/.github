@@ -20,6 +20,20 @@ All OmnisTools repositories share the same five AWS accounts and deployment lane
 | ai-dev   | `ai/dev`     | `ai-dev`           | `AI-Dev`     | `ai-dev-{repo}`            | `885102939857` | `arn:aws:iam::885102939857:role/github-actions-deploy` |
 | ai-stage | `ai/stage`   | `ai-stage`         | `AI-Staging` | `ai-stage-{repo}`          | `075502354537` | `arn:aws:iam::075502354537:role/github-actions-deploy` |
 
+> **Application account vs network account (OmnisTools).** The target model is that
+> the account IDs above are *application* accounts, and networks are owned by
+> separate accounts and shared by AWS RAM to the lane's OU: dev `885102939857`,
+> staging `697731339825` (`omnistools-staging`), prod `075502354537`. Application
+> accounts in the OU consume the share and need no VPC. See `aws-org-structure.md`.
+>
+> **Current exceptions to that model** (do not read the table as already matching it):
+> - The `ai-dev` and `ai-stage` rows point at `885102939857` and `075502354537`,
+>   which are themselves the Dev and Production **network owners** (and host
+>   WordPress). OT-800 moves the AI lanes to dedicated accounts, and these two rows
+>   will change then.
+> - The `staging` row (`981758561569`, preprod) still consumes the **Dev** share, not
+>   the staging one, until its workloads are migrated (OT-792).
+
 ### Branch naming rule
 
 **The lane branch is named for its environment.** The dev environment is
