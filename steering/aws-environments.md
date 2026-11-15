@@ -44,13 +44,14 @@ from `main` and merged (by PR) into `devtest`; `main` is the source of truth.
   `omnistools-preprod` / `omnistools-newprod` and the GitHub environments are
   `staging` / `prod`; revisiting those names is deferred.
 - `ai/dev` and `ai/stage` already match the `ai-dev` / `ai-stage` environments.
-- **Transition:** until the rename is done, these repos still use `dev` as the
-  dev branch (TFC workspace `dev-*` tracks it): `infra-omnis`, `infra-iam`,
-  `infra-shared`, `infra-stateless`, `omnis-serverless`, `report-lambda-omnis`.
-  `backend-omnis` and `frontend-omnis` already use `devtest`. Treat `dev` as a
-  legacy alias for `devtest` in those repos and do not create new `dev` branches
-  elsewhere. `dev-report-lambda-omnis` also tracks `main` today and is to be
-  moved to `devtest`.
+- **Transition:** `infra-omnis`, `infra-iam`, `infra-shared`, `infra-stateless`,
+  `report-lambda-omnis`, `backend-omnis` and `frontend-omnis` have a `devtest`
+  branch on origin. The TFC workspaces `dev-infra-omnis`, `dev-infra-iam`,
+  `dev-infra-shared`, `dev-infra-stateless` and `dev-report-lambda-omnis` track
+  `devtest`. The old `dev` branches in the first five of those repos still exist
+  until deletion is approved; do not use them. `omnis-serverless` has no
+  `devtest` branch yet and still uses `dev`. Do not create new `dev` branches
+  elsewhere.
 - Terraform Cloud project names (`Dev`, `Staging`, `Prod`, ...) and workspace
   names (`dev-{repo}`) are unchanged by the branch rule.
 
