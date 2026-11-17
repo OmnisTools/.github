@@ -17,8 +17,16 @@ All OmnisTools repositories share the same five AWS accounts and deployment lane
 | devtest  | `devtest`    | `dev`              | `Dev`        | `dev-{repo}`               | `709543209073` | `arn:aws:iam::709543209073:role/github-actions-deploy` |
 | staging  | `staging`    | `staging`          | `Staging`    | `staging-{repo}`           | `981758561569` | `arn:aws:iam::981758561569:role/github-actions-deploy` |
 | prod     | `production` | `prod`             | `Prod`       | `prod-{repo}`              | `526272178819` | `arn:aws:iam::526272178819:role/github-actions-deploy` |
-| ai-dev   | `ai/dev`     | `ai-dev`           | `AI-Dev`     | `ai-dev-{repo}`            | `885102939857` | `arn:aws:iam::885102939857:role/github-actions-deploy` |
-| ai-stage | `ai/stage`   | `ai-stage`         | `AI-Staging` | `ai-stage-{repo}`          | `075502354537` | `arn:aws:iam::075502354537:role/github-actions-deploy` |
+| ai-dev   | `ai/dev`     | `ai-dev`           | `AI-Dev`     | `ai-dev-{repo}`            | `793040131955` | `arn:aws:iam::793040131955:role/github-actions-deploy` |
+| ai-stage | `ai/stage`   | `ai-stage`         | `AI-Staging` | `ai-stage-{repo}`          | `110980421396` | `arn:aws:iam::110980421396:role/github-actions-deploy` |
+| ai-prod  | `ai/prod`    | `ai-prod`          | `AI-Prod`    | `ai-prod-{repo}`           | `984429768971` | `arn:aws:iam::984429768971:role/github-actions-deploy` |
+
+The three AI lanes each have a **dedicated, VPC-less AWS account** (OT-800). They
+own no network: they consume their segment's VPC subnets through the OU-scoped
+AWS RAM share, purely by OU membership (see `aws-org-structure.md`). Nothing is
+added to `vpc.yaml` for them. The `ai-prod` lane cannot use a prod network until
+`network-omnistools-prod` has its OU-scoped RAM share deployed (not yet deployed;
+tracked on OT-800).
 
 ### Branch naming rule
 
@@ -29,7 +37,8 @@ from `main` and merged (by PR) into `devtest`; `main` is the source of truth.
 - `staging` and `production` keep their names for now. The AWS accounts are
   `omnistools-preprod` / `omnistools-newprod` and the GitHub environments are
   `staging` / `prod`; revisiting those names is deferred.
-- `ai/dev` and `ai/stage` already match the `ai-dev` / `ai-stage` environments.
+- `ai/dev`, `ai/stage` and `ai/prod` match the `ai-dev` / `ai-stage` / `ai-prod` environments
+  (the `/` in the branch name becomes `-` in the environment and workspace names).
 - **Transition:** until the rename is done, these repos still use `dev` as the
   dev branch (TFC workspace `dev-*` tracks it): `infra-omnis`, `infra-iam`,
   `infra-shared`, `infra-stateless`, `omnis-serverless`, `report-lambda-omnis`.
@@ -66,14 +75,16 @@ CloudFormation stacks live under `OmnisToolsAWS/CloudFormation/WordPress/`
 
 Notes that avoid the common foot-guns:
 
-- **OmnisTools WordPress shares the AI-track accounts.** The OmnisTools
-  WordPress dev/prod sites are hosted in `885102939857` (= the `ai-dev` lane
-  account) and `075502354537` (= the `ai-stage` lane account). This is
-  intentional and historical — the OmnisTools WordPress site is **not** hosted
-  in the Standard-flow `production` account `526272178819`. When a tool or
-  script says "omnistools / prod" for WordPress it means `075502354537`, **not**
-  `526272178819`. Do not "correct" WordPress account IDs to the Standard-flow
-  prod account.
+- **OmnisTools WordPress is hosted in the network-owner accounts.** The
+  OmnisTools WordPress dev/prod sites are hosted in `885102939857`
+  (`omnistools-dev`, the dev network owner) and `075502354537`
+  (`omnistools-prod`, the prod network owner). These two accounts formerly also
+  hosted the `ai-dev` and `ai-stage` lanes; those moved to dedicated accounts
+  under OT-800 and the old AI deployments were removed. The OmnisTools WordPress
+  site is **not** hosted in the Standard-flow `production` account
+  `526272178819`. When a tool or script says "omnistools / prod" for WordPress it
+  means `075502354537`, **not** `526272178819`. Do not "correct" WordPress
+  account IDs to the Standard-flow prod account.
 - **OmnisRisk has its own two accounts**, `184243409136` (dev) and
   `416417230199` (prod), used only for the OmnisRisk WordPress site. These are
   separate from every backend-omnis lane and from the OmnisTools WordPress
@@ -92,7 +103,7 @@ Notes that avoid the common foot-guns:
 ## Promotion Flow
 
 - Standard: `main` → feature `branch` → (PR) `devtest` → `staging` → `production` → (PR) `main`
-- AI: `ai/dev` → `ai/stage`
+- AI: `production` → feature `branch` → (PR) `ai/dev` → `ai/stage` → `ai/prod`
 
 `main` is the source of truth. Feature work is cut from `main`, enters the
 lanes at `devtest`, and returns to `main` after production:
@@ -115,11 +126,11 @@ Hotfixes follow the same path unless the user explicitly approves otherwise.
 
 The AI track is deliberately separate from the Standard flow and must stay that way.
 
-- **The AI track forks from `production`.** `ai/dev` is cut from `production` — never from `main`, `devtest`, or `staging`. `ai/stage` is not cut from `production`; it is created and updated only by the AI promotion flow from `ai/dev`.
-- **AI work never writes to a Standard-flow branch.** `main`, `devtest`, `staging`, and `production` are read-only to AI-lane work. Reading any of them is fine — fetch, log, diff. Beyond reading, exactly two operations may consume a Standard-flow branch, and both are scoped to `production`: cutting `ai/dev` from it, and merging it forward into `ai/dev`. Never use `main`, `devtest`, or `staging` as the source for either. Committing, merging, or pushing *to* any Standard-flow branch is prohibited.
-- **AI promotion automation lives on the AI branches.** `promote-ai.yml` on `ai/dev` drives `ai/dev` → `ai/stage`. The Standard flow's `promote.yml` is never modified to serve the AI lanes.
-- **The two flows never cross-promote.** There is no promotion from `ai/stage` into `staging`, `production`, or `main`, and no Standard lane promotes into an AI lane. The one permitted Standard→AI operation is *synchronization*, not promotion: merge `production` forward into `ai/dev` to pick up Standard-flow changes.
-- **Why:** the AI lanes deploy to their own AWS accounts (ai-dev `885102939857`, ai-stage `075502354537`). An AI proof-of-concept must not be able to disturb the release path for the production system.
+- **The AI track forks from `production`.** AI feature branches are cut from `production` and merged (by PR) into `ai/dev` — never cut from `main`, `devtest`, or `staging`. `ai/dev` itself is cut from `production`. `ai/stage` and `ai/prod` are not cut from `production`; `ai/stage` is created and updated only by the AI promotion flow from `ai/dev`, and `ai/prod` only by the AI promotion flow from `ai/stage`.
+- **AI work never writes to a Standard-flow branch.** `main`, `devtest`, `staging`, and `production` are read-only to AI-lane work. Reading any of them is fine — fetch, log, diff. Beyond reading, exactly three operations may consume a Standard-flow branch, and all are scoped to `production`: cutting `ai/dev` from it, cutting an AI feature branch from it, and merging it forward into `ai/dev`. Never use `main`, `devtest`, or `staging` as the source for either. Committing, merging, or pushing *to* any Standard-flow branch is prohibited.
+- **AI promotion automation lives on the AI branches.** `promote-ai.yml` on `ai/dev` drives `ai/dev` → `ai/stage`, and the matching workflow on `ai/stage` drives `ai/stage` → `ai/prod`. The Standard flow's `promote.yml` is never modified to serve the AI lanes.
+- **The two flows never cross-promote.** There is no promotion from `ai/stage` or `ai/prod` into `staging`, `production`, or `main`, and no Standard lane promotes into an AI lane. The one permitted Standard→AI operation is *synchronization*, not promotion: merge `production` forward into `ai/dev` to pick up Standard-flow changes.
+- **Why:** the AI lanes deploy to their own AWS accounts (ai-dev `793040131955`, ai-stage `110980421396`, ai-prod `984429768971`). An AI proof-of-concept must not be able to disturb the release path for the production system.
 
 ## Conventions
 
@@ -129,8 +140,8 @@ The AI track is deliberately separate from the Standard flow and must stay that 
 - IAM role is always `github-actions-deploy` in every account (provisioned by the `infra-iam` TFC workspace).
 - Use OIDC (`role-to-assume`) in GitHub Actions — never use static IAM access keys.
 - Each GitHub environment exposes exactly two variables: `AWS_ROLE_ARN` and `AWS_DEFAULT_REGION`.
-- TFC workspace naming pattern: `{prefix}-{repo-name}`, with the prefix taken from this explicit lane mapping (do not derive it from the project name): `devtest` lane → `dev`, `staging` → `staging`, `prod` → `prod`, `ai-dev` → `ai-dev`, `ai-stage` → `ai-stage`. Example: `dev-backend-omnis` for the `devtest` lane, never `devtest-backend-omnis`; `ai-stage-backend-omnis`, never `ai-staging-backend-omnis`.
-- TFC workspaces are grouped by lane into TFC Projects: `Dev`, `Staging`, `Prod`, `AI-Dev`, `AI-Staging`.
+- TFC workspace naming pattern: `{prefix}-{repo-name}`, with the prefix taken from this explicit lane mapping (do not derive it from the project name): `devtest` lane → `dev`, `staging` → `staging`, `prod` → `prod`, `ai-dev` → `ai-dev`, `ai-stage` → `ai-stage`, `ai-prod` → `ai-prod`. Example: `dev-backend-omnis` for the `devtest` lane, never `devtest-backend-omnis`; `ai-stage-backend-omnis`, never `ai-staging-backend-omnis`; `ai-prod-backend-omnis`.
+- TFC workspaces are grouped by lane into TFC Projects: `Dev`, `Staging`, `Prod`, `AI-Dev`, `AI-Staging`, `AI-Prod`.
 
 ## Tooling Responsibilities
 
@@ -146,7 +157,7 @@ The AI track is deliberately separate from the Standard flow and must stay that 
 - Infrastructure changes go through TFC; application changes go through GitHub Actions — do not conflate the two.
 - Never suggest creating new IAM roles for deployment; `github-actions-deploy` already exists in every account.
 - When creating a new TFC workspace, place it in the correct TFC Project matching its lane.
-- When running any `aws` CLI command locally, ALWAYS use `--profile <profile>`. For **application lanes** (backend-omnis and the infra repos), match the lane: devtest → `omnistools-devtest`, staging → `omnistools-preprod`, prod → `omnistools-newprod`, ai-dev → `omnistools-dev`, ai-stage → `omnistools-prod`. For **WordPress** (OmnisTools / OmnisRisk marketing sites), do not use this mapping: select the profile from the WordPress hosting table above (`omnistools-dev`, `omnistools-prod`, `omnisrisk-dev`, `omnisrisk-prod`).
+- When running any `aws` CLI command locally, ALWAYS use `--profile <profile>`. For **application lanes** (backend-omnis and the infra repos), match the lane: devtest → `omnistools-devtest`, staging → `omnistools-preprod`, prod → `omnistools-newprod`, ai-dev → `ai-dev`, ai-stage → `ai-stage`, ai-prod → `ai-prod`. For **WordPress** (OmnisTools / OmnisRisk marketing sites), do not use this mapping: select the profile from the WordPress hosting table above (`omnistools-dev`, `omnistools-prod`, `omnisrisk-dev`, `omnisrisk-prod`).
 - NEVER run `aws` CLI commands without `--profile` — they will fail with NoCredentials.
-- AI-lane work MUST NOT commit, merge, or push to `main`, `devtest`, `staging`, or `production` — those branches are read-only to the AI track. Cut and update `ai/dev` from `production` instead, and let the AI promotion flow create and update `ai/stage` from `ai/dev`.
+- AI-lane work MUST NOT commit, merge, or push to `main`, `devtest`, `staging`, or `production` — those branches are read-only to the AI track. Cut AI feature branches and `ai/dev` from `production` instead, and let the AI promotion flow create and update `ai/stage` from `ai/dev` and `ai/prod` from `ai/stage`.
 - When an AI branch needs Standard-flow changes, merge `production` forward into `ai/dev`. This synchronization merge is permitted; promoting or cherry-picking from an AI branch into a Standard-flow branch is not.
